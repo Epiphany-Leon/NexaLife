@@ -1,0 +1,17 @@
+# Xcode 产生的编译产物
+build/
+DerivedData/
+
+# 个人配置与状态
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/
+.DS_Store
+
+# SwiftData/Core Data 产生的本地临时数据库文件
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# 敏感信息（如果你后续添加了 API Key 配置文件）
+*.env
