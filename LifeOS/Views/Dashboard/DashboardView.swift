@@ -19,6 +19,7 @@ struct DashboardView: View {
 	@Query private var notes:        [Note]
 	@Query private var transactions: [Transaction]
 	@Query private var goals:        [Goal]
+	@Query private var connections:  [Connection]
 	@Query private var vitals:       [VitalsEntry]
 	@Query(sort: \DashboardSnapshot.monthKey, order: .reverse)
 	private var snapshots: [DashboardSnapshot]
@@ -40,6 +41,17 @@ struct DashboardView: View {
 	var totalNotes:       Int { notes.count }
 	var unprocessedInbox: Int { inboxItems.filter { !$0.isProcessed }.count }
 	var activeGoals:      Int { goals.filter { !$0.isCompleted }.count }
+	var totalConnections: Int { connections.count }
+	var highPriorityConnections: Int {
+		connections.filter { min(5, max(1, $0.importanceLevel)) >= 4 }.count
+	}
+	var followUpConnections: Int {
+		let threshold = calendar.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+		return connections.filter { connection in
+			guard let date = connection.lastContactDate else { return true }
+			return date < threshold
+		}.count
+	}
 	var totalExecutionCount: Int { pendingTasks + inProgressTasks + doneTasks }
 
 	var knowledgeTopicTags: [String] {
@@ -181,7 +193,7 @@ struct DashboardView: View {
 				DashboardCard(
 					title:    "生活 Lifestyle",
 					value:    "\(CurrencyService.format(abs(monthlyExpense), currency: displayCurrency, showSign: false)) 支出",
-					subtitle: "\(CurrencyService.format(monthlyIncome, currency: displayCurrency, showSign: true)) 收入 · \(activeGoals) 目标",
+					subtitle: "\(CurrencyService.format(monthlyIncome, currency: displayCurrency, showSign: true)) 收入 · \(activeGoals) 目标 · \(totalConnections) 人脉（高优先 \(highPriorityConnections) · 待跟进 \(followUpConnections)）",
 					icon:     "cup.and.saucer.fill",
 					color:    .green
 				)
