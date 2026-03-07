@@ -47,22 +47,40 @@ struct LifeOSApp: App {
 			}
 			.environmentObject(appState)
 			.environmentObject(oauthService)
+			.environment(\.locale, appState.currentLocale)
+			.preferredColorScheme(appState.selectedAppearanceMode.colorScheme)
+			.task {
+				appState.runAutoBackupIfNeeded()
+			}
 		}
 		// ✅ 任务6：默认窗口尺寸加大
-		.defaultSize(width: 1280, height: 800)
-		.modelContainer(sharedModelContainer)
-		.commands {
-			CommandGroup(after: .appInfo) {
-				Button("偏好设置…") {
-					NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+			.defaultSize(width: 1280, height: 800)
+			.modelContainer(sharedModelContainer)
+			.commands {
+				CommandMenu("settings.commands.quick_actions") {
+					Button("settings.commands.quick_capture") {
+						NotificationCenter.default.post(name: .lifeOSShowQuickInput, object: nil)
+					}
+				.keyboardShortcut(
+					appState.selectedQuickCaptureShortcut.keyEquivalent,
+					modifiers: appState.selectedQuickCaptureShortcut.modifiers
+				)
+
+				Button("settings.commands.global_search") {
+					NotificationCenter.default.post(name: .lifeOSShowGlobalSearch, object: nil)
 				}
-				.keyboardShortcut(",", modifiers: .command)
+				.keyboardShortcut(
+					appState.selectedGlobalSearchShortcut.keyEquivalent,
+					modifiers: appState.selectedGlobalSearchShortcut.modifiers
+				)
 			}
 		}
 
 		Settings {
 			PreferencesView()
 				.environmentObject(appState)
+				.environment(\.locale, appState.currentLocale)
+				.preferredColorScheme(appState.selectedAppearanceMode.colorScheme)
 		}
 	}
 }

@@ -26,6 +26,7 @@ enum AICredentialStore {
 	private static let account = "aiApiKey"
 	private static let storageModeKey = "apiTokenStorageMode"
 	private static let localFilePathKey = "apiTokenLocalFilePath"
+	private static let migratedLegacyTokenKey = "apiTokenMigratedToKeychain"
 	private static let storageDirectoryKey = "storageDirectory"
 	private static let fallbackFolderName = "LifeOS"
 	private static let tokenFileName = "ai_api_token.txt"
@@ -35,23 +36,55 @@ enum AICredentialStore {
 		return APITokenStorageMode(rawValue: raw) ?? .keychain
 	}
 
-	static func saveAPIKey(_ key: String) {
-		switch mode {
-		case .keychain:
-			KeychainHelper.shared.save(service: service, account: account, value: key)
-		case .localFile:
-			saveToLocalFile(key)
-			KeychainHelper.shared.delete(service: service, account: account)
+	static func bootstrapSecurityDefaults() {
+		if UserDefaults.standard.object(forKey: storageModeKey) == nil {
+			UserDefaults.standard.set(APITokenStorageMode.keychain.rawValue, forKey: storageModeKey)
+		}
+
+		guard !UserDefaults.standard.bool(forKey: migratedLegacyTokenKey) else { return }
+		defer {
+			UserDefaults.standard.set(true, forKey: migratedLegacyTokenKey)
+		}
+
+		let keychainToken = (KeychainHelper.shared.read(service: service, account: account) ?? "")
+			.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard keychainToken.isEmpty else { return }
+
+		let localToken = (readFromLocalFile() ?? "")
+			.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard !localToken.isEmpty else { return }
+
+		if KeychainHelper.shared.save(service: service, account: account, value: localToken) {
+			AppLogger.info("Migrated legacy local token to Keychain.", category: "security")
 		}
 	}
 
-	static func readAPIKey() -> String {
-		switch mode {
+	static func updateStorageMode(_ newMode: APITokenStorageMode) {
+		let previousMode = mode
+		UserDefaults.standard.set(newMode.rawValue, forKey: storageModeKey)
+		guard previousMode != newMode else { return }
+
+		let existing = readAPIKey(from: previousMode)
+			.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard !existing.isEmpty else { return }
+
+		saveAPIKey(existing, to: newMode)
+		switch newMode {
 		case .keychain:
-			return KeychainHelper.shared.read(service: service, account: account) ?? ""
+			removeLocalFileIfExists()
 		case .localFile:
-			return readFromLocalFile() ?? ""
+			_ = KeychainHelper.shared.delete(service: service, account: account)
 		}
+	}
+
+	static func saveAPIKey(_ key: String) {
+		let normalized = key.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard !normalized.isEmpty else { return }
+		saveAPIKey(normalized, to: mode)
+	}
+
+	static func readAPIKey() -> String {
+		readAPIKey(from: mode)
 	}
 
 	static func storageLocationDescription() -> String {
@@ -71,6 +104,33 @@ enum AICredentialStore {
 		UserDefaults.standard.set(url.path, forKey: localFilePathKey)
 	}
 
+	static func clearAPIKey() {
+		_ = KeychainHelper.shared.delete(service: service, account: account)
+		removeLocalFileIfExists()
+		UserDefaults.standard.removeObject(forKey: localFilePathKey)
+		UserDefaults.standard.set(APITokenStorageMode.keychain.rawValue, forKey: storageModeKey)
+	}
+
+	private static func saveAPIKey(_ key: String, to mode: APITokenStorageMode) {
+		switch mode {
+		case .keychain:
+			_ = KeychainHelper.shared.save(service: service, account: account, value: key)
+			removeLocalFileIfExists()
+		case .localFile:
+			saveToLocalFile(key)
+			_ = KeychainHelper.shared.delete(service: service, account: account)
+		}
+	}
+
+	private static func readAPIKey(from mode: APITokenStorageMode) -> String {
+		switch mode {
+		case .keychain:
+			return KeychainHelper.shared.read(service: service, account: account) ?? ""
+		case .localFile:
+			return readFromLocalFile() ?? ""
+		}
+	}
+
 	private static func saveToLocalFile(_ key: String) {
 		let url = localTokenFileURL()
 		do {
@@ -79,9 +139,10 @@ enum AICredentialStore {
 				withIntermediateDirectories: true,
 				attributes: nil
 			)
-			try key.data(using: .utf8)?.write(to: url, options: [.atomic])
+			guard let data = key.data(using: .utf8) else { return }
+			try data.write(to: url, options: [.atomic])
 		} catch {
-			NSLog("AICredentialStore save file error: \(error.localizedDescription)")
+			AppLogger.error("AICredentialStore save file failed: \(error.localizedDescription)", category: "security")
 		}
 	}
 
@@ -107,5 +168,15 @@ enum AICredentialStore {
 		return base
 			.appendingPathComponent(fallbackFolderName, isDirectory: true)
 			.appendingPathComponent(tokenFileName)
+	}
+
+	private static func removeLocalFileIfExists() {
+		let fileURL = localTokenFileURL()
+		guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+		do {
+			try FileManager.default.removeItem(at: fileURL)
+		} catch {
+			AppLogger.warning("Failed to remove local token file: \(error.localizedDescription)", category: "security")
+		}
 	}
 }

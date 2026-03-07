@@ -38,7 +38,7 @@ class OAuthService: NSObject, ObservableObject, ASWebAuthenticationPresentationC
 				return
 			}
 			if let error = error {
-				print("OAuth 失败: \(error.localizedDescription)")
+				AppLogger.warning("OAuth failed: \(error.localizedDescription)", category: "auth")
 				completion(false)
 				return
 			}

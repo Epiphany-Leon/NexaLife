@@ -466,10 +466,17 @@ class AIService: ObservableObject {
 	// MARK: - 通用 API 调用
 	// ✅ 去掉 nonisolated，统一在 @MainActor 上下文，URLSession 本身是线程安全的
 	func callAPI(prompt: String, maxTokens: Int = 300) async -> String? {
-		let raw         = UserDefaults.standard.string(forKey: "aiProvider") ?? "deepseek"
-		let providerURL = raw == "qwen" ? AIProvider.qwen.rawValue : AIProvider.deepseek.rawValue
-		let modelName   = raw == "qwen" ? "qwen-turbo" : "deepseek-chat"
-		let key         = AICredentialStore.readAPIKey()
+		let rawProvider = UserDefaults.standard.string(forKey: "aiProvider") ?? AIProviderOption.deepseek.rawValue
+		let providerURL = rawProvider == AIProviderOption.qwen.rawValue ? AIProvider.qwen.rawValue : AIProvider.deepseek.rawValue
+		let modelName: String = {
+			if rawProvider == AIProviderOption.qwen.rawValue {
+				return UserDefaults.standard.string(forKey: "aiModelQwen") ?? "qwen-turbo"
+			}
+			return UserDefaults.standard.string(forKey: "aiModelDeepSeek") ?? "deepseek-chat"
+		}()
+		let configuredTimeout = UserDefaults.standard.double(forKey: "aiTimeoutSeconds")
+		let timeout = configuredTimeout > 0 ? configuredTimeout : 30
+		let key = AICredentialStore.readAPIKey()
 
 		guard !key.isEmpty, let url = URL(string: providerURL) else { return nil }
 
@@ -483,7 +490,7 @@ class AIService: ObservableObject {
 		request.httpMethod = "POST"
 		request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
 		request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-		request.timeoutInterval = 30
+		request.timeoutInterval = timeout
 		request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
 		do {
@@ -491,7 +498,11 @@ class AIService: ObservableObject {
 			//    返回后自动回到 @MainActor，无需手动切换线程
 			let (data, response) = try await URLSession.shared.data(for: request)
 			guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-				print("AI API HTTP 错误: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+				let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+				AppLogger.warning(
+					"AI API HTTP error status=\(status) provider=\(rawProvider) model=\(modelName)",
+					category: "ai"
+				)
 				return nil
 			}
 			let json    = try JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -499,7 +510,10 @@ class AIService: ObservableObject {
 			let message = choices?.first?["message"] as? [String: Any]
 			return message?["content"] as? String
 		} catch {
-			print("AI API 失败: \(error.localizedDescription)")
+			AppLogger.warning(
+				"AI API request failed provider=\(rawProvider) model=\(modelName): \(error.localizedDescription)",
+				category: "ai"
+			)
 			return nil
 		}
 	}

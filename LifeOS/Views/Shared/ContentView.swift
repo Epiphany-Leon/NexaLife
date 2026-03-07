@@ -13,6 +13,7 @@ struct ContentView: View {
 	@EnvironmentObject private var appState: AppState
 	@Environment(\.modelContext) private var modelContext
 	@State private var isShowingQuickInput = false
+	@State private var isShowingGlobalSearch = false
 
 	@State private var selectedDashboardSnapshot: DashboardSnapshot? = nil
 	@State private var selectedInboxItem:          InboxItem?          // ✅ 由这里统一持有
@@ -35,14 +36,27 @@ struct ContentView: View {
 		.toolbar {
 			ToolbarItem(placement: .primaryAction) {
 				Button { isShowingQuickInput = true } label: {
-					Label("捕捉闪念", systemImage: "plus.circle.fill")
+					Label("settings.commands.quick_capture", systemImage: "plus.circle.fill")
 				}
-				.keyboardShortcut("n", modifiers: [.command, .shift])
+				.keyboardShortcut(
+					appState.selectedQuickCaptureShortcut.keyEquivalent,
+					modifiers: appState.selectedQuickCaptureShortcut.modifiers
+				)
 			}
 		}
 		.sheet(isPresented: $isShowingQuickInput) {
 			QuickInputSheet(isPresented: $isShowingQuickInput)
 		}
+		.sheet(isPresented: $isShowingGlobalSearch) {
+			GlobalSearchSheet()
+				.environmentObject(appState)
+		}
+			.onReceive(NotificationCenter.default.publisher(for: .lifeOSShowQuickInput)) { _ in
+				isShowingQuickInput = true
+			}
+			.onReceive(NotificationCenter.default.publisher(for: .lifeOSShowGlobalSearch)) { _ in
+				isShowingGlobalSearch = true
+			}
 	}
 
 	// MARK: - 中间列
@@ -86,7 +100,7 @@ struct ContentView: View {
 			if let task = selectedTask {
 				TaskDetailView(selectedTask: $selectedTask, task: task)
 			} else {
-				placeholderView(icon: "target", message: "选择任务查看详情")
+				ExecutionEmptyDetailView()
 			}
 		case .knowledge:
 			if let note = selectedNote {
@@ -236,5 +250,143 @@ struct ContentView: View {
 				.buttonStyle(.borderedProminent)
 		}
 		.frame(maxWidth: .infinity, maxHeight: .infinity)
+	}
+}
+
+private struct ExecutionEmptyDetailView: View {
+	@Query private var tasks: [TaskItem]
+	@Query private var projects: [ExecutionProject]
+
+	private var activeTasks: [TaskItem] {
+		tasks.filter { $0.archivedMonthKey == nil }
+	}
+
+	private var todoCount: Int {
+		activeTasks.filter { $0.status == .todo }.count
+	}
+
+	private var inProgressCount: Int {
+		activeTasks.filter { $0.status == .inProgress }.count
+	}
+
+	private var doneCount: Int {
+		activeTasks.filter { $0.status == .done }.count
+	}
+
+	var body: some View {
+		VStack(spacing: 18) {
+			Image(systemName: "target")
+				.font(.system(size: 42))
+				.foregroundStyle(.tertiary)
+
+			Text("选择任务查看详情")
+				.font(.title3)
+				.foregroundStyle(.secondary)
+
+			Text("也可以从这里直接开始执行")
+				.font(.subheadline)
+				.foregroundStyle(.tertiary)
+
+			HStack(spacing: 8) {
+				ExecutionQuickChip(title: "待办", value: todoCount, color: .orange)
+				ExecutionQuickChip(title: "进行中", value: inProgressCount, color: .blue)
+				ExecutionQuickChip(title: "已完成", value: doneCount, color: .green)
+				ExecutionQuickChip(title: "项目", value: projects.count, color: .teal)
+			}
+
+			HStack(spacing: 10) {
+				Button {
+					NotificationCenter.default.post(name: .lifeOSExecutionCreateTask, object: nil)
+				} label: {
+					Label("新建任务", systemImage: "plus")
+				}
+				.buttonStyle(.borderedProminent)
+
+				Button {
+					NotificationCenter.default.post(name: .lifeOSExecutionManageProjects, object: nil)
+				} label: {
+					Label("项目管理", systemImage: "folder.badge.gearshape")
+				}
+				.buttonStyle(.bordered)
+			}
+		}
+		.frame(maxWidth: .infinity, maxHeight: .infinity)
+		.padding(20)
+	}
+}
+
+private struct ExecutionQuickChip: View {
+	let title: String
+	let value: Int
+	let color: Color
+
+	var body: some View {
+		HStack(spacing: 6) {
+			Text(title)
+			Text("\(value)")
+				.bold()
+		}
+		.font(.caption)
+		.padding(.horizontal, 10)
+		.padding(.vertical, 4)
+		.background(color.opacity(0.12))
+		.foregroundStyle(color)
+		.clipShape(Capsule())
+	}
+}
+
+private struct GlobalSearchSheet: View {
+	@EnvironmentObject private var appState: AppState
+	@Environment(\.dismiss) private var dismiss
+	@State private var query: String = ""
+
+	private var filteredModules: [AppModule] {
+		let keyword = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+		guard !keyword.isEmpty else { return AppModule.allCases }
+		return AppModule.allCases.filter { module in
+			module.preferenceLabel.lowercased().contains(keyword)
+				|| module.rawValue.lowercased().contains(keyword)
+		}
+	}
+
+	var body: some View {
+		VStack(alignment: .leading, spacing: 12) {
+			Text("settings.global_search.title")
+				.font(.title3.bold())
+
+			TextField("settings.global_search.placeholder", text: $query)
+				.textFieldStyle(.roundedBorder)
+
+			Divider()
+
+			ScrollView {
+				VStack(alignment: .leading, spacing: 8) {
+					ForEach(filteredModules) { module in
+						Button {
+							appState.updateModule(module)
+							dismiss()
+						} label: {
+							HStack {
+								Image(systemName: module.icon)
+								Text(module.preferenceLabel)
+								Spacer()
+							}
+						}
+						.buttonStyle(.plain)
+						.padding(.horizontal, 10)
+						.padding(.vertical, 8)
+						.background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+					}
+				}
+			}
+
+			HStack {
+				Spacer()
+				Button("settings.global_search.close") { dismiss() }
+					.buttonStyle(.bordered)
+			}
+		}
+		.padding(18)
+		.frame(width: 420, height: 380)
 	}
 }

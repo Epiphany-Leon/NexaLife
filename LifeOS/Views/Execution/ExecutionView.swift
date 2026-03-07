@@ -17,6 +17,9 @@ struct ExecutionView: View {
 	@State private var isAddingTask = false
 	@State private var isManagingProjects = false
 	@State private var selectedFilter: TaskFilter = .all
+	@State private var searchText = ""
+	@State private var debouncedSearchText = ""
+	@State private var searchDebounceTask: Task<Void, Never>?
 
 	enum TaskFilter: String, CaseIterable {
 		case all = "全部"
@@ -34,11 +37,24 @@ struct ExecutionView: View {
 	var doneCount: Int { activeTasks.filter { $0.status == .done }.count }
 
 	var filteredTasks: [TaskItem] {
+		let source = searchedTasks
 		switch selectedFilter {
-		case .all: return activeTasks
-		case .todo: return activeTasks.filter { $0.status == .todo }
-		case .inProgress: return activeTasks.filter { $0.status == .inProgress }
-		case .done: return activeTasks.filter { $0.status == .done }
+		case .all: return source
+		case .todo: return source.filter { $0.status == .todo }
+		case .inProgress: return source.filter { $0.status == .inProgress }
+		case .done: return source.filter { $0.status == .done }
+		}
+	}
+
+	var searchedTasks: [TaskItem] {
+		let keyword = debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard !keyword.isEmpty else { return activeTasks }
+		return activeTasks.filter { task in
+			task.title.localizedCaseInsensitiveContains(keyword)
+				|| task.notes.localizedCaseInsensitiveContains(keyword)
+				|| task.category.localizedCaseInsensitiveContains(keyword)
+				|| task.tagsText.localizedCaseInsensitiveContains(keyword)
+				|| task.projectName.localizedCaseInsensitiveContains(keyword)
 		}
 	}
 
@@ -81,32 +97,11 @@ struct ExecutionView: View {
 
 	var body: some View {
 		VStack(spacing: 0) {
-			HStack(spacing: 20) {
-				StatBadge(label: "待办", count: pendingCount, color: .orange)
-				StatBadge(label: "进行中", count: inProgressCount, color: .blue)
-				StatBadge(label: "已完成", count: doneCount, color: .green)
-				Spacer()
-				Button {
-					isManagingProjects = true
-				} label: {
-					Label("项目管理", systemImage: "folder.badge.gearshape")
-				}
-				.buttonStyle(.bordered)
-				.controlSize(.small)
-
-				Button {
-					isAddingTask = true
-				} label: {
-					Label("新建任务", systemImage: "plus")
-				}
-				.buttonStyle(.borderedProminent)
-				.controlSize(.small)
-			}
-			.padding(.horizontal, 16)
-			.padding(.vertical, 10)
-			.background(Color(nsColor: .windowBackgroundColor))
+			header
 
 			Divider()
+
+			searchBar
 
 			Picker("筛选", selection: $selectedFilter) {
 				ForEach(TaskFilter.allCases, id: \.self) { filter in
@@ -114,18 +109,21 @@ struct ExecutionView: View {
 				}
 			}
 			.pickerStyle(.segmented)
-			.padding(12)
+			.padding(.horizontal, 12)
+			.padding(.bottom, 10)
 
 			projectOverviewStrip
 				.padding(.horizontal, 12)
 				.padding(.bottom, 8)
 
+			Divider()
+
 			List(selection: $selectedTask) {
 				if filteredTasks.isEmpty {
 					ContentUnavailableView(
-						"没有任务",
-						systemImage: "checkmark.circle",
-						description: Text("点击右上角新建任务")
+						searchText.isEmpty ? "没有任务" : "没有匹配结果",
+						systemImage: searchText.isEmpty ? "checkmark.circle" : "magnifyingglass",
+						description: Text(searchText.isEmpty ? "在右侧详情栏创建新任务" : "试试其他关键词或筛选项")
 					)
 				} else {
 					ForEach(groupedTasks, id: \.0) { projectName, items in
@@ -134,14 +132,28 @@ struct ExecutionView: View {
 								TaskRowView(task: task)
 									.tag(task)
 									.listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+									.contextMenu {
+										Button("标记为待办") {
+											updateStatus(for: task, to: .todo)
+										}
+										Button("标记为进行中") {
+											updateStatus(for: task, to: .inProgress)
+										}
+										Button("标记为已完成") {
+											updateStatus(for: task, to: .done)
+										}
+										Divider()
+										Button(role: .destructive) {
+											deleteTask(task)
+										} label: {
+											Label("删除任务", systemImage: "trash")
+										}
+									}
 							}
 							.onDelete { offsets in
 								for index in offsets {
 									let target = items[index]
-									if selectedTask?.id == target.id {
-										selectedTask = nil
-									}
-									modelContext.delete(target)
+									deleteTask(target)
 								}
 							}
 						}
@@ -151,26 +163,103 @@ struct ExecutionView: View {
 		}
 		.navigationTitle("执行 Execution")
 		.navigationSplitViewColumnWidth(min: ColumnWidth.min, ideal: ColumnWidth.ideal, max: ColumnWidth.max)
-		.sheet(isPresented: $isAddingTask) {
-			AddTaskSheet(
-				isPresented: $isAddingTask,
-				projectNames: knownProjectNames
+			.sheet(isPresented: $isAddingTask) {
+				AddTaskSheet(
+					isPresented: $isAddingTask,
+					projectNames: knownProjectNames
+				)
+			}
+			.sheet(isPresented: $isManagingProjects) {
+				ProjectManagementSheet(isPresented: $isManagingProjects)
+			}
+			.onDeleteCommand {
+				if let task = selectedTask {
+					deleteTask(task)
+				}
+			}
+			.onAppear {
+				debouncedSearchText = searchText
+			}
+			.onChange(of: searchText) { _, newValue in
+				searchDebounceTask?.cancel()
+				searchDebounceTask = Task {
+					try? await Task.sleep(nanoseconds: 180_000_000)
+					guard !Task.isCancelled else { return }
+					await MainActor.run {
+						debouncedSearchText = newValue
+					}
+				}
+			}
+			.onChange(of: tasks.map(\.id)) { _, ids in
+				if let selected = selectedTask, !ids.contains(selected.id) {
+					selectedTask = nil
+				}
+			}
+			.onReceive(NotificationCenter.default.publisher(for: .lifeOSExecutionCreateTask)) { _ in
+				isAddingTask = true
+			}
+			.onReceive(NotificationCenter.default.publisher(for: .lifeOSExecutionManageProjects)) { _ in
+				isManagingProjects = true
+			}
+			.onDisappear {
+				searchDebounceTask?.cancel()
+			}
+		}
+
+	private var header: some View {
+		LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+			ExecutionMetricCard(
+				title: "待办",
+				value: "\(pendingCount)",
+				subtitle: "待推进任务",
+				color: .orange
+			)
+			ExecutionMetricCard(
+				title: "进行中",
+				value: "\(inProgressCount)",
+				subtitle: "当前执行中",
+				color: .blue
+			)
+			ExecutionMetricCard(
+				title: "已完成",
+				value: "\(doneCount)",
+				subtitle: "本阶段成果",
+				color: .green
+			)
+			ExecutionMetricCard(
+				title: "项目数",
+				value: "\(projects.count)",
+				subtitle: "短中长期总计",
+				color: .teal
 			)
 		}
-		.sheet(isPresented: $isManagingProjects) {
-			ProjectManagementSheet(isPresented: $isManagingProjects)
-		}
-		.onDeleteCommand {
-			if let task = selectedTask {
-				selectedTask = nil
-				modelContext.delete(task)
+		.padding(.horizontal, 12)
+		.padding(.vertical, 10)
+		.background(Color(nsColor: .windowBackgroundColor))
+	}
+
+	private var searchBar: some View {
+		HStack {
+			Image(systemName: "magnifyingglass")
+				.foregroundStyle(.secondary)
+			TextField("搜索标题、项目、分类、标签…", text: $searchText)
+				.textFieldStyle(.plain)
+			if !searchText.isEmpty {
+				Button {
+					searchText = ""
+				} label: {
+					Image(systemName: "xmark.circle.fill")
+						.foregroundStyle(.secondary)
+				}
+				.buttonStyle(.plain)
 			}
 		}
-		.onChange(of: tasks.map(\.id)) { _, ids in
-			if let selected = selectedTask, !ids.contains(selected.id) {
-				selectedTask = nil
-			}
-		}
+		.padding(8)
+		.background(Color(nsColor: .controlBackgroundColor))
+		.clipShape(RoundedRectangle(cornerRadius: 8))
+		.padding(.horizontal, 12)
+		.padding(.top, 8)
+		.padding(.bottom, 10)
 	}
 
 	private var projectOverviewStrip: some View {
@@ -179,6 +268,16 @@ struct ExecutionView: View {
 				ProjectCountPill(title: "短期", count: shortTermProjects.count, color: .orange)
 				ProjectCountPill(title: "中期", count: midTermProjects.count, color: .blue)
 				ProjectCountPill(title: "长期", count: longTermProjects.count, color: .green)
+
+				Spacer(minLength: 8)
+
+				Button {
+					isManagingProjects = true
+				} label: {
+					Label("项目管理", systemImage: "folder.badge.gearshape")
+				}
+				.buttonStyle(.bordered)
+				.controlSize(.small)
 			}
 
 			if projects.isEmpty {
@@ -212,6 +311,18 @@ struct ExecutionView: View {
 		}
 	}
 
+	private func deleteTask(_ task: TaskItem) {
+		if selectedTask?.id == task.id {
+			selectedTask = nil
+		}
+		modelContext.delete(task)
+	}
+
+	private func updateStatus(for task: TaskItem, to status: TaskStatus) {
+		task.status = status
+		task.completedAt = status == .done ? Date() : nil
+	}
+
 	private func projectSortRank(_ projectName: String) -> Int {
 		if projectName == "收件箱" { return 0 }
 		guard let project = projects.first(where: { $0.name == projectName }) else { return 4 }
@@ -223,20 +334,32 @@ struct ExecutionView: View {
 	}
 }
 
-struct StatBadge: View {
-	var label: String
-	var count: Int
-	var color: Color
+private struct ExecutionMetricCard: View {
+	let title: String
+	let value: String
+	let subtitle: String
+	let color: Color
 
 	var body: some View {
-		VStack(spacing: 2) {
-			Text("\(count)")
-				.font(.system(size: 18, weight: .bold))
+		VStack(alignment: .leading, spacing: 4) {
+			Text(title)
+				.font(.caption)
+				.foregroundStyle(.secondary)
+			Text(value)
+				.font(.system(size: 20, weight: .bold))
 				.foregroundStyle(color)
-			Text(label)
+				.lineLimit(1)
+				.minimumScaleFactor(0.7)
+			Text(subtitle)
 				.font(.caption2)
 				.foregroundStyle(.secondary)
+				.lineLimit(1)
 		}
+		.frame(maxWidth: .infinity, alignment: .leading)
+		.padding(.horizontal, 10)
+		.padding(.vertical, 8)
+		.background(color.opacity(0.1))
+		.clipShape(RoundedRectangle(cornerRadius: 10))
 	}
 }
 

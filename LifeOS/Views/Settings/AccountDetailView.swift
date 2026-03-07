@@ -15,13 +15,10 @@ struct AccountDetailView: View {
 
 	@State private var draftUserName: String = ""
 	@State private var draftBudgetText: String = ""
-	@State private var apiKeyInput: String = ""
-	@State private var savedApiKey: String = ""
-	@State private var showTokenValue = false
-	@State private var copiedToken = false
 	@State private var savedProfile = false
 	@State private var savedBudget = false
-	@State private var savedToken = false
+	@State private var isShowingAvatarCropper = false
+	@State private var pendingAvatarImage: NSImage?
 	private let formLabelWidth: CGFloat = 72
 	private let trailingContentWidth: CGFloat = 360
 	private let trailingEdgePadding: CGFloat = 12
@@ -29,12 +26,6 @@ struct AccountDetailView: View {
 	private var avatarImage: NSImage? {
 		guard !appState.avatarImagePath.isEmpty else { return nil }
 		return NSImage(contentsOfFile: appState.avatarImagePath)
-	}
-
-	private var tokenDisplayText: String {
-		guard !savedApiKey.isEmpty else { return "未保存" }
-		if showTokenValue { return savedApiKey }
-		return String(repeating: "*", count: max(8, min(savedApiKey.count, 24)))
 	}
 
 	var body: some View {
@@ -75,7 +66,7 @@ struct AccountDetailView: View {
 
 						VStack(alignment: .trailing, spacing: 8) {
 							Button("修改头像并裁剪…") {
-								selectAndCropAvatar()
+								selectAvatarForManualCrop()
 							}
 							.buttonStyle(.bordered)
 							if !appState.avatarImagePath.isEmpty {
@@ -140,127 +131,30 @@ struct AccountDetailView: View {
 							}
 						}
 					}
-				}
 
-				Section("API Token") {
-					rightAlignedRow(label: "保存位置") {
-						HStack {
-							Spacer(minLength: 0)
-							Picker("保存位置", selection: $appState.apiTokenStorageMode) {
-								ForEach(APITokenStorageMode.allCases) { mode in
-									Text(mode.label).tag(mode.rawValue)
-								}
+						rightAlignedRow(label: "高级设置") {
+							Button("在设置中管理 API Token 与数据存储…") {
+								NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
 							}
-							.labelsHidden()
-							.frame(width: 220, alignment: .trailing)
-							.onChange(of: appState.apiTokenStorageMode) { _, _ in
-								savedApiKey = AICredentialStore.readAPIKey()
-							}
+							.buttonStyle(.bordered)
 						}
 					}
-
-					if appState.selectedAPITokenStorageMode == .localFile {
-						rightAlignedRow(label: "本地文件") {
-							HStack(spacing: 8) {
-								Text(AICredentialStore.localFileURL().path)
-									.foregroundStyle(.secondary)
-									.truncationMode(.middle)
-									.frame(width: 220, alignment: .trailing)
-								Button("选择文件…") {
-									selectTokenFile()
-								}
-								.buttonStyle(.bordered)
-								.controlSize(.small)
-							}
-						}
-					}
-
-					rightAlignedRow(label: "已保存 Token") {
-						HStack(spacing: 8) {
-							if showTokenValue && !savedApiKey.isEmpty {
-								Button(savedApiKey) {
-									copyTokenToPasteboard()
-								}
-								.buttonStyle(.plain)
-								.help("点击复制到剪贴板")
-								.textSelection(.enabled)
-								.lineLimit(1)
-								.truncationMode(.middle)
-							} else {
-								Text(tokenDisplayText)
-									.foregroundStyle(savedApiKey.isEmpty ? .secondary : .primary)
-							}
-							Button {
-								showTokenValue.toggle()
-							} label: {
-								Image(systemName: showTokenValue ? "eye.slash" : "eye")
-							}
-							.buttonStyle(.plain)
-							if copiedToken {
-								Text("已复制")
-									.font(.caption)
-									.foregroundStyle(.green)
-							}
-						}
-					}
-
-					rightAlignedRow(label: "更新 Token") {
-						SecureField("sk-...", text: $apiKeyInput)
-							.textFieldStyle(.roundedBorder)
-							.frame(width: 260)
-					}
-
-					rightAlignedRow(label: "") {
-						HStack(spacing: 10) {
-							Button("保存 API Key") {
-								AICredentialStore.saveAPIKey(apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines))
-								savedApiKey = AICredentialStore.readAPIKey()
-								showSavedFlag($savedToken)
-							}
-							.buttonStyle(.borderedProminent)
-							.disabled(apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-							if savedToken {
-								Label("已保存", systemImage: "checkmark.circle.fill")
-									.font(.subheadline)
-									.foregroundStyle(.green)
-							}
-						}
-					}
-
-					rightAlignedRow(label: "实际保存地") {
-						Text(AICredentialStore.storageLocationDescription())
-							.foregroundStyle(.secondary)
-							.truncationMode(.middle)
-							.frame(width: 300, alignment: .trailing)
-					}
-				}
-
-				Section("数据存储") {
-					rightAlignedRow(label: "数据目录") {
-						Text(appState.storageDirectory?.path ?? "默认路径")
-							.foregroundStyle(.secondary)
-							.truncationMode(.middle)
-							.frame(width: 300, alignment: .trailing)
-					}
-
-					rightAlignedRow(label: "") {
-						Button("更改存储文件夹…") {
-							selectDataFolder()
-						}
-						.buttonStyle(.bordered)
-					}
-				}
 			}
 			.formStyle(.grouped)
 		}
-		.frame(width: 640, height: 620)
+		.frame(width: 640, height: 420)
+		.sheet(isPresented: $isShowingAvatarCropper, onDismiss: {
+			pendingAvatarImage = nil
+		}) {
+			if let source = pendingAvatarImage {
+				AvatarCropperSheet(sourceImage: source) { cropped in
+					saveAvatarImage(cropped)
+				}
+			}
+		}
 		.onAppear {
 			draftUserName = appState.userName
 			draftBudgetText = String(format: "%.2f", appState.monthlyBudget)
-			let key = AICredentialStore.readAPIKey()
-			savedApiKey = key
-			apiKeyInput = key
 		}
 	}
 
@@ -285,20 +179,23 @@ struct AccountDetailView: View {
 		}
 	}
 
-	private func selectAndCropAvatar() {
+	private func selectAvatarForManualCrop() {
 		let panel = NSOpenPanel()
 		panel.canChooseDirectories = false
 		panel.canChooseFiles = true
 		panel.allowsMultipleSelection = false
 		panel.allowedContentTypes = [.image]
-		guard panel.runModal() == .OK, let sourceURL = panel.url,
-			  let sourceImage = NSImage(contentsOf: sourceURL),
-			  let croppedImage = circularCroppedImage(from: sourceImage),
-			  let pngData = croppedImage.pngData()
-		else {
+		guard panel.runModal() == .OK,
+			  let sourceURL = panel.url,
+			  let sourceImage = NSImage(contentsOf: sourceURL) else {
 			return
 		}
+		pendingAvatarImage = sourceImage
+		isShowingAvatarCropper = true
+	}
 
+	private func saveAvatarImage(_ image: NSImage) {
+		guard let pngData = image.pngData() else { return }
 		let folder = avatarStoreFolderURL()
 		do {
 			try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -306,27 +203,8 @@ struct AccountDetailView: View {
 			try pngData.write(to: targetURL, options: .atomic)
 			appState.avatarImagePath = targetURL.path
 		} catch {
-			NSLog("Avatar save error: \(error.localizedDescription)")
+			AppLogger.warning("Avatar save failed: \(error.localizedDescription)", category: "profile")
 		}
-	}
-
-	private func circularCroppedImage(from image: NSImage) -> NSImage? {
-		guard let cg = image.cgImageFromImage else { return nil }
-		let side = min(cg.width, cg.height)
-		let x = (cg.width - side) / 2
-		let y = (cg.height - side) / 2
-		let cropRect = CGRect(x: x, y: y, width: side, height: side)
-		guard let square = cg.cropping(to: cropRect) else { return nil }
-
-		let size = NSSize(width: side, height: side)
-		let output = NSImage(size: size)
-		output.lockFocus()
-		let path = NSBezierPath(ovalIn: NSRect(origin: .zero, size: size))
-		path.addClip()
-		NSGraphicsContext.current?.imageInterpolation = .high
-		NSImage(cgImage: square, size: size).draw(in: NSRect(origin: .zero, size: size))
-		output.unlockFocus()
-		return output
 	}
 
 	private func avatarStoreFolderURL() -> URL {
@@ -334,39 +212,162 @@ struct AccountDetailView: View {
 			?? URL(fileURLWithPath: NSTemporaryDirectory())
 		return base.appendingPathComponent("LifeOS/Avatars", isDirectory: true)
 	}
+}
 
-	private func selectTokenFile() {
-		let panel = NSSavePanel()
-		panel.nameFieldStringValue = "ai_api_token.txt"
-		panel.allowedContentTypes = [.plainText]
-		panel.canCreateDirectories = true
-		guard panel.runModal() == .OK, let url = panel.url else { return }
-		AICredentialStore.setLocalFileURL(url)
-		if !apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-			AICredentialStore.saveAPIKey(apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines))
-			savedApiKey = AICredentialStore.readAPIKey()
-		}
+private struct AvatarCropperSheet: View {
+	@Environment(\.dismiss) private var dismiss
+
+	let sourceImage: NSImage
+	let onSave: (NSImage) -> Void
+
+	@State private var zoom: CGFloat = 1
+	@State private var offset: CGSize = .zero
+	@State private var dragStartOffset: CGSize = .zero
+
+	private let previewSide: CGFloat = 340
+	private let cropDiameter: CGFloat = 260
+	private let outputSide: CGFloat = 512
+
+	private var sourceSize: CGSize {
+		guard let cg = sourceImage.cgImageFromImage else { return .zero }
+		return CGSize(width: cg.width, height: cg.height)
 	}
 
-	private func copyTokenToPasteboard() {
-		guard !savedApiKey.isEmpty else { return }
-		let board = NSPasteboard.general
-		board.clearContents()
-		board.setString(savedApiKey, forType: .string)
-		withAnimation { copiedToken = true }
-		DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-			withAnimation { copiedToken = false }
-		}
+	private var baseScale: CGFloat {
+		guard sourceSize.width > 0, sourceSize.height > 0 else { return 1 }
+		return max(cropDiameter / sourceSize.width, cropDiameter / sourceSize.height)
 	}
 
-	private func selectDataFolder() {
-		let panel = NSOpenPanel()
-		panel.canChooseDirectories = true
-		panel.canChooseFiles = false
-		panel.allowsMultipleSelection = false
-		if panel.runModal() == .OK {
-			appState.storageDirectory = panel.url
+	private var renderedWidth: CGFloat { sourceSize.width * baseScale * zoom }
+	private var renderedHeight: CGFloat { sourceSize.height * baseScale * zoom }
+
+	var body: some View {
+		VStack(alignment: .leading, spacing: 14) {
+			Text("手动裁剪头像")
+				.font(.title3.bold())
+
+			ZStack {
+				Color.black.opacity(0.06)
+
+				Image(nsImage: sourceImage)
+					.resizable()
+					.interpolation(.high)
+					.frame(width: renderedWidth, height: renderedHeight)
+					.offset(offset)
+					.gesture(dragGesture)
+
+				Color.black.opacity(0.44)
+					.compositingGroup()
+					.mask {
+						Rectangle()
+							.overlay {
+								Circle()
+									.frame(width: cropDiameter, height: cropDiameter)
+									.blendMode(.destinationOut)
+							}
+					}
+					.allowsHitTesting(false)
+
+				Circle()
+					.strokeBorder(.white.opacity(0.95), lineWidth: 2)
+					.frame(width: cropDiameter, height: cropDiameter)
+					.shadow(color: .black.opacity(0.25), radius: 3, y: 1)
+			}
+			.frame(width: previewSide, height: previewSide)
+			.clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+			HStack(spacing: 10) {
+				Text("缩放")
+					.foregroundStyle(.secondary)
+				Slider(value: $zoom, in: 1...4, step: 0.01)
+					.onChange(of: zoom) { _, newValue in
+						offset = clampedOffset(offset, zoom: newValue)
+						dragStartOffset = offset
+					}
+				Button("重置") {
+					zoom = 1
+					offset = .zero
+					dragStartOffset = .zero
+				}
+				.buttonStyle(.bordered)
+			}
+
+			HStack {
+				Spacer()
+				Button("取消") {
+					dismiss()
+				}
+				.buttonStyle(.bordered)
+				Button("保存头像") {
+					guard let image = renderCroppedAvatar() else { return }
+					onSave(image)
+					dismiss()
+				}
+				.buttonStyle(.borderedProminent)
+			}
 		}
+		.padding(18)
+		.frame(width: 380)
+	}
+
+	private var dragGesture: some Gesture {
+		DragGesture(minimumDistance: 0)
+			.onChanged { value in
+				let next = CGSize(
+					width: dragStartOffset.width + value.translation.width,
+					height: dragStartOffset.height + value.translation.height
+				)
+				offset = clampedOffset(next)
+			}
+			.onEnded { _ in
+				dragStartOffset = offset
+			}
+	}
+
+	private func clampedOffset(_ candidate: CGSize, zoom: CGFloat? = nil) -> CGSize {
+		let resolvedZoom = zoom ?? self.zoom
+		let width = sourceSize.width * baseScale * resolvedZoom
+		let height = sourceSize.height * baseScale * resolvedZoom
+
+		let maxX = max(0, (width - cropDiameter) / 2)
+		let maxY = max(0, (height - cropDiameter) / 2)
+
+		return CGSize(
+			width: min(max(candidate.width, -maxX), maxX),
+			height: min(max(candidate.height, -maxY), maxY)
+		)
+	}
+
+	private func renderCroppedAvatar() -> NSImage? {
+		guard let cg = sourceImage.cgImageFromImage else { return nil }
+
+		let mappedScale = baseScale * zoom
+		guard mappedScale > 0 else { return nil }
+
+		let side = max(1, cropDiameter / mappedScale)
+		let centerX = CGFloat(cg.width) / 2 - offset.width / mappedScale
+		let centerYTopDown = CGFloat(cg.height) / 2 - offset.height / mappedScale
+
+		var topDownX = centerX - side / 2
+		var topDownY = centerYTopDown - side / 2
+		topDownX = min(max(0, topDownX), CGFloat(cg.width) - side)
+		topDownY = min(max(0, topDownY), CGFloat(cg.height) - side)
+
+		let yFromBottom = CGFloat(cg.height) - topDownY - side
+		let primaryRect = CGRect(x: topDownX, y: yFromBottom, width: side, height: side).integral
+		let fallbackRect = CGRect(x: topDownX, y: topDownY, width: side, height: side).integral
+		let square = cg.cropping(to: primaryRect) ?? cg.cropping(to: fallbackRect)
+		guard let square else { return nil }
+
+		let outputSize = NSSize(width: outputSide, height: outputSide)
+		let output = NSImage(size: outputSize)
+		output.lockFocus()
+		let path = NSBezierPath(ovalIn: NSRect(origin: .zero, size: outputSize))
+		path.addClip()
+		NSGraphicsContext.current?.imageInterpolation = .high
+		NSImage(cgImage: square, size: outputSize).draw(in: NSRect(origin: .zero, size: outputSize))
+		output.unlockFocus()
+		return output
 	}
 }
 
