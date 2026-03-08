@@ -36,3 +36,6 @@ DerivedData/
 
 # Local token/cache files
 ai_api_token.txt
+
+# Local release artifacts
+release/

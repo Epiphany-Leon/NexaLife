@@ -1,55 +1,75 @@
 # LifeOS
 
 [![Release](https://img.shields.io/github/v/release/Epiphany-Leon/LifeOS?display_name=tag)](https://github.com/Epiphany-Leon/LifeOS/releases)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-LifeOS is a SwiftUI app for personal life management.
+LifeOS 是一个基于 SwiftUI 的个人生活管理应用，围绕「收件箱、执行、生活、体征、知识、总览」六大模块，帮助你进行记录、规划与复盘。
 
-It organizes daily information into focused modules so you can capture, plan, review, and act in one place.
+## 下载与开箱即用
 
-## Current Scope
+### 普通用户（macOS）
 
-- Inbox: quick capture and triage
-- Execution: tasks and projects
-- Lifestyle: goals, accounting, and relationships
-- Vitals: health-related entries
-- Knowledge: notes and links
-- Dashboard: overview and archive views
-- Optional AI assistance (classification, summaries, prompts)
+1. 打开 [Releases](https://github.com/Epiphany-Leon/LifeOS/releases)
+2. 下载最新版本的 `LifeOS-macos-vX.Y.Z.zip`
+3. 解压后得到 `LifeOS.app`
+4. 拖入 `Applications` 并启动
 
-## Tech Stack
+说明：
+- GitHub 的 `Source code (zip/tar.gz)` 是源码，不是可直接运行的 App。
+- iOS 版本不通过 GitHub 直接分发安装包（通常走 App Store/TestFlight）。
 
-- Swift
-- SwiftUI
-- Apple platform APIs (e.g., AuthenticationServices, Keychain)
+### 开发者（源码运行）
 
-## Supported Platforms
+```bash
+git clone git@github.com:Epiphany-Leon/LifeOS.git
+cd LifeOS
+open LifeOS.xcodeproj
+```
 
-The Xcode project is configured for Apple platforms including iOS/iPadOS/macOS (and related simulators).
+然后在 Xcode 里选择 `LifeOS` scheme，运行到目标模拟器或设备。
 
-## Getting Started
+## 核心模块
 
-1. Clone the repository.
-2. Open `LifeOS.xcodeproj` in Xcode.
-3. Select the `LifeOS` scheme.
-4. Build and run on your target simulator/device.
+- Inbox：快速记录与收件整理
+- Execution：任务与项目执行管理
+- Lifestyle：目标、财务、关系等生活模块
+- Vitals：体征与健康相关记录
+- Knowledge：笔记与知识整理
+- Dashboard：总览与归档视图
+- AI（可选）：分类、总结与建议能力
 
-## AI Key and Security
+## 技术栈与平台
 
-- API keys are not stored in this repository.
-- By default, API keys are stored in Keychain in-app.
-- Do not commit local secrets, certificates, or provisioning files.
+- Swift + SwiftUI
+- Apple 原生能力（AuthenticationServices、Keychain 等）
+- 平台：iOS / iPadOS / macOS（以及相关模拟器配置）
 
-## Repository Structure
+## AI 与安全
 
-- `LifeOS/`: app source code and assets
-- `LifeOS.xcodeproj/`: Xcode project
-- `LifeOS/Docs/`: notes and supporting documents
+- 仓库不包含 API Key
+- API Key 默认保存在 Keychain
+- 请勿提交本地密钥、证书、签名文件或私有配置
 
-## Contributing
+## 发布与版本节奏
 
-Please read `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` before opening issues or pull requests.
+- 当前首个公开版本：`v0.1.0`
+- 建议采用小步快发（例如 `v0.1.1`、`v0.1.2`）
+- 每次发布前请更新 `CHANGELOG.md`，并在 Release 中附带说明
 
-## License
+## 仓库结构
 
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
-See `LICENSE` for details.
+- `LifeOS/`：应用源码与资源
+- `LifeOS.xcodeproj/`：Xcode 工程
+- `LifeOS/Docs/`：文档与发布草稿
+- `release/`：本地打包产物目录（已在 `.gitignore` 忽略）
+
+## 贡献指南
+
+- 提交前请阅读 `CONTRIBUTING.md`
+- 社区行为准则见 `CODE_OF_CONDUCT.md`
+- Issue/PR 模板已在 `.github/` 提供
+
+## 许可证
+
+本项目采用 **GNU General Public License v3.0 (GPL-3.0)**。
+详见 `LICENSE`。
