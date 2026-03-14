@@ -1,6 +1,6 @@
 # Contributing Guide
 
-Thanks for your interest in contributing to LifeOS.
+Thanks for your interest in contributing to NexaLife.
 
 ## Before You Start
 
@@ -53,7 +53,7 @@ Before opening a PR:
 - If available in your environment, run a CLI build:
 
 ```bash
-xcodebuild -project LifeOS.xcodeproj -scheme LifeOS -configuration Debug -destination 'platform=macOS' build
+xcodebuild -project NexaLife.xcodeproj -scheme NexaLife -configuration Debug -destination 'platform=macOS' build
 ```
 
 ## Pull Request Checklist
@@ -84,7 +84,7 @@ git checkout -b fix/<short-description>
 ```bash
 git checkout main
 git pull
-git tag -a v0.1.1 -m "LifeOS v0.1.1"
+git tag -a v0.1.1 -m "NexaLife v0.1.1"
 git push origin main
 git push origin v0.1.1
 ```

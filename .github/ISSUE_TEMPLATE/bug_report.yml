@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem in LifeOS.
+description: Report a reproducible problem in NexaLife.
 title: "[Bug] "
 labels:
   - bug
