@@ -39,3 +39,7 @@ ai_api_token.txt
 
 # Local release artifacts
 release/
+!NexaLife/Docs/release/
+!NexaLife/Docs/release/v0.1.1/
+!NexaLife/Docs/release/v0.1.1/*.png
+!NexaLife/Docs/release/v0.1.1/*.md
