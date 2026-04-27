@@ -7,95 +7,131 @@
 
 **Steer, Don't Drift.**
 
-NexaLife (`构筑人生`) is a local-first SwiftUI life operating system for people who want one durable workspace for capture, execution, knowledge, lifestyle records, and reflective review. It is built around a simple premise: your daily system should help you steer your life, not scatter it across separate apps.
+NexaLife (`构筑人生`) is a local-first SwiftUI life operating system for macOS. One durable workspace for capture, execution, knowledge, lifestyle records, and reflective review — with optional AI assistance woven through every module.
 
-`v0.1.1` is the first release that fully aligns the product name, the `Profile` identity model, and the app's privacy stance around on-device ownership.
+[Download v0.2.0](https://github.com/Epiphany-Leon/NexaLife/releases/tag/v0.2.0) | [Release Notes](Docs/release/v0.2.0/v0.2.0-release-notes.md)
 
-[Download the latest macOS build](https://github.com/Epiphany-Leon/NexaLife/releases) | [Read the v0.1.1 release notes](NexaLife/Docs/release/v0.1.1/v0.1.1-release-notes.md)
+---
+
+## Install
+
+### Homebrew (recommended)
+
+```bash
+brew tap Epiphany-Leon/nexalife
+brew install --cask nexalife
+```
+
+### Manual download
+
+Download `NexaLife-macos-v0.2.0.zip` from [Releases](https://github.com/Epiphany-Leon/NexaLife/releases), unzip, and move `NexaLife.app` to `/Applications`.
+
+> **Requires macOS 26 Tahoe or later.**
+
+---
 
 ## Product Tour
 
-![NexaLife dashboard overview](NexaLife/Docs/release/v0.1.1/dashboard-overview-bilingual.png)
+![NexaLife Dashboard](Docs/release/v0.2.0/dashboard-overview.png)
 
-| Onboarding | Email profile confirmation |
+| Onboarding | AI Mentor Setup |
 | --- | --- |
-| ![NexaLife onboarding](NexaLife/Docs/release/v0.1.1/onboarding-profile-en.png) | ![NexaLife profile confirmation](NexaLife/Docs/release/v0.1.1/profile-confirmation-en.png) |
+| ![Onboarding welcome](Docs/release/v0.2.0/onboarding-welcome.png) | ![AI Mentor onboarding](Docs/release/v0.2.0/onboarding-ai-setup.png) |
 
-| Profile settings | About window |
+| Inbox | Quick Capture with AI routing |
 | --- | --- |
-| ![NexaLife profile settings](NexaLife/Docs/release/v0.1.1/settings-profile-en.png) | ![NexaLife about window](NexaLife/Docs/release/v0.1.1/about-en.png) |
+| ![Inbox](Docs/release/v0.2.0/inbox.png) | ![Quick Capture AI](Docs/release/v0.2.0/quick-capture-ai.png) |
+
+| Execution — Kanban & Projects | Knowledge |
+| --- | --- |
+| ![Execution](Docs/release/v0.2.0/execution-kanban.png) | ![Knowledge](Docs/release/v0.2.0/knowledge.png) |
+
+| Lifestyle — Ledger | Lifestyle — Goals |
+| --- | --- |
+| ![Lifestyle Ledger](Docs/release/v0.2.0/lifestyle-ledger.png) | ![Lifestyle Goals](Docs/release/v0.2.0/lifestyle-goals.png) |
+
+| Lifestyle — Connections | Vitals |
+| --- | --- |
+| ![Connections](Docs/release/v0.2.0/lifestyle-connections.png) | ![Vitals](Docs/release/v0.2.0/vitals.png) |
+
+| AI Mentor Chat | About |
+| --- | --- |
+| ![AI Mentor Chat](Docs/release/v0.2.0/ai-mentor-chat.png) | ![About](Docs/release/v0.2.0/about-en.png) |
+
+---
 
 ## Why NexaLife
 
-- One workspace for capture, routing, execution, review, and long-term records.
-- Local-first by default, so your daily data does not start in a developer-hosted cloud database.
-- Structured around real personal operations: tasks, finances, goals, notes, relationships, and self-review.
-- AI stays optional and falls back to local rules when no API key is configured.
+- **One workspace** for capture, routing, execution, review, and long-term records — stop context-switching between five apps.
+- **Local-first by default** — your daily data does not start in a developer-hosted cloud database.
+- **AI is optional and gracefully falls back** to a local rule engine when no API key is configured.
+- Structured around real personal operations: tasks, projects, finances, goals, notes, relationships, and self-review.
 
-## Core Areas
+---
 
-- `Inbox`: capture thoughts quickly, then route them later.
-- `Execution`: manage tasks, projects, status, and active delivery work.
-- `Lifestyle`: track ledger entries, goals, and relationship records.
-- `Knowledge`: keep notes, topics, and reusable reference material together.
-- `Vitals`: record core principles, mood, reflection, and self-observation.
-- `Dashboard`: review the current month in one place and archive snapshots over time.
+## Core Modules
+
+| Module | Purpose |
+|--------|---------|
+| **Inbox** | Capture thoughts with Quick Capture (`⌘⌥N`), route them later. AI suggests the right module in real time. |
+| **Execution** | Kanban board (To-do / In Progress / Done) + Projects panel with horizon and status tags. AI infers task category, tags, and project. |
+| **Lifestyle** | Ledger with AI category suggestions, goal tracking, and relationship records with AI interaction strategy. |
+| **Knowledge** | Notes organised by topic. AI can generate a summary report for any note. |
+| **Vitals** | Core principles, mood and reflection logs, and a quick-capture Treehouse panel. |
+| **Dashboard** | Monthly overview with AI Mentor guidance, daily review editor, and archive snapshots. |
+
+---
+
+## AI Integration
+
+NexaLife integrates AI as a **contextual assistant**, not a chatbot wrapper:
+
+- **Smart routing** — Quick Capture classifies new entries into the right module automatically.
+- **Task metadata** — category, tags, and project name are inferred from the task title and notes.
+- **Financial categorisation** — AI reads the transaction title and notes to suggest the right expense or income category.
+- **Relationship insights** — importance scoring, interaction strategy, and next-action suggestion for each connection.
+- **Dashboard guidance** — pattern recognition and weekly nudges based on your recent records.
+- **AI Mentor chat** — a floating chat window accessible from any screen via the sidebar button.
+
+**Providers supported:** DeepSeek (v4-flash, v4-pro, deepseek-chat, deepseek-reasoner) and Qwen. Custom providers can be added in the model picker (Settings → AI).
+
+**No API key?** Every AI feature falls back to a local rule engine — the app is fully usable offline.
+
+---
 
 ## Local-First Data Model
 
-- App-internal storage remains the default working state.
-- JSON snapshot export and import are the standard migration layer across devices and builds.
-- `External Folder` sync is designed for user-managed storage such as Nutstore, NAS, or iCloud Drive.
-- Future `iCloud` sync is intended to use the user's private Apple container rather than a developer database.
-- API keys are stored in Keychain and excluded from sync archives.
+- App-internal SwiftData storage is the default working state.
+- JSON snapshot export and import are the standard migration path across devices and builds.
+- `External Folder` sync supports Nutstore, NAS, or iCloud Drive.
+- Future `iCloud` sync will use the user's private Apple container, not a developer database.
+- API keys are stored as a local file and excluded from sync archives.
 
-## Optional AI Assistance
+---
 
-- Inbox routing suggestions can classify new captures into the most likely module.
-- Execution metadata suggestions can infer categories, tags, and likely project names.
-- Relationship records can generate optional AI insights, while local rules remain available as fallback.
-- Provider settings currently support `DeepSeek` and `Qwen`.
+## What's New in v0.2.0
 
-## What's New in v0.1.1
+- **AI woven throughout every module** — financial categorisation, task metadata, relationship insights, dashboard guidance, and always-visible AI Mentor chat.
+- **Quick Capture AI routing fixed** — correctly suggests Lifestyle for spending-related captures; local keyword engine covers subscription, membership, fee, 扣费, 会员, and more.
+- **Execution project rows redesigned** — coloured horizon and status tags on the left; edit/delete on the right; new "Paused" project status.
+- **Task detail project field** upgraded to a combobox (type a new name or pick from existing projects).
+- **Cherry Studio-style model picker** with custom provider support.
+- **Onboarding** now includes an AI Mentor setup step.
+- App bundle reduced from ~30 MB to ~1.9 MB (Docs moved out of bundle).
+- CodeSign failure permanently fixed via Build Phase xattr-clear script.
 
-- Unified the product identity as `NexaLife / 构筑人生`.
-- Reframed `Account` into `Profile` throughout onboarding and Settings.
-- Added an email verification flow for creating or re-entering an email profile.
-- Added a dedicated `Profile` tab in Settings.
-- Added a proper About window with manifesto, strategy, and privacy copy.
-- Clarified sync modes as `Local / iCloud / External Folder`.
-- Fixed multiple localization refresh problems across profile-related views.
+[Full release notes →](Docs/release/v0.2.0/v0.2.0-release-notes.md)
+
+---
 
 ## Current Scope
 
-- NexaLife is currently an early macOS release built in SwiftUI.
-- The archived `v0.1.1` build includes the Apple profile and iCloud path as product direction, but not as a finished sync feature.
-- The email verification UI flow is present, but real email delivery still requires a user-owned backend endpoint.
-- Today, JSON archive export/import is the reliable migration path between builds or machines.
+- NexaLife is an early macOS release built in SwiftUI targeting macOS 26 Tahoe.
+- iCloud sync and external folder watch mode are planned for v0.4.0.
+- Email verification UI is present; real email delivery requires a user-owned backend.
+- JSON archive export/import is the reliable migration path between builds today.
 
-## Download
-
-For packaged builds, open [Releases](https://github.com/Epiphany-Leon/NexaLife/releases) and download the latest macOS asset, such as `NexaLife-macos-v0.1.1.zip`.
-
-If you only want to try `v0.1.1`, the packaged release is the intended entry point.
-
-## Run From Source
-
-```bash
-git clone git@github.com:Epiphany-Leon/NexaLife.git
-cd NexaLife
-open NexaLife.xcodeproj
-```
-
-Then select the `NexaLife` scheme in Xcode and run it with a compatible macOS/Xcode toolchain.
-
-## Repository Layout
-
-- `NexaLife/`: app source, assets, localized strings, and internal docs
-- `NexaLife.xcodeproj/`: Xcode project
-- `NexaLife/Docs/release/`: release notes and product screenshots
-- `NexaLife/Docs/同步方案/`: sync, account, and archive design notes
-- `NexaLife/Docs/开发日志/`: development logs
+---
 
 ## License
 

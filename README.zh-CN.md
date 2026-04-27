@@ -7,103 +7,131 @@
 
 **掌控，而非漂流。**
 
-构筑人生（`NexaLife`）是一款基于 SwiftUI 的本地优先个人运行中枢，用来把收件、执行、知识、生活记录与觉知追踪放进同一个长期工作台。它不是一个“再多一个工具”，而是希望成为你管理人生系统时的主界面。
+构筑人生（`NexaLife`）是一款基于 SwiftUI 的 macOS 本地优先个人运行中枢——把收件、执行、知识、生活记录与觉知追踪放进同一个长期工作台，并在每个模块中提供可选的 AI 辅助。
 
-`v0.1.1` 是第一个完成品牌统一、`Profile` 身份模型收敛、以及数据策略说明补全的版本。
+[下载 v0.2.0](https://github.com/Epiphany-Leon/NexaLife/releases/tag/v0.2.0) | [查看发布说明](Docs/release/v0.2.0/v0.2.0-release-notes.md)
 
-[下载最新 macOS 构建](https://github.com/Epiphany-Leon/NexaLife/releases) | [查看 v0.1.1 发布说明](NexaLife/Docs/release/v0.1.1/v0.1.1-release-notes.md)
+---
+
+## 安装
+
+### Homebrew（推荐）
+
+```bash
+brew tap Epiphany-Leon/nexalife
+brew install --cask nexalife
+```
+
+### 手动下载
+
+从 [Releases](https://github.com/Epiphany-Leon/NexaLife/releases) 下载 `NexaLife-macos-v0.2.0.zip`，解压后将 `NexaLife.app` 移入 `/Applications`。
+
+> **需要 macOS 26 Tahoe 或更高版本。**
+
+---
 
 ## 产品截图
 
-![构筑人生仪表盘总览](NexaLife/Docs/release/v0.1.1/dashboard-overview-zh.png)
+![构筑人生仪表盘总览](Docs/release/v0.2.0/dashboard-overview.png)
 
-| 收件箱 | 执行 |
+| 引导流程 | AI Mentor 配置 |
 | --- | --- |
-| ![构筑人生收件箱](NexaLife/Docs/release/v0.1.1/inbox-empty-zh.png) | ![构筑人生执行模块](NexaLife/Docs/release/v0.1.1/execution-empty-state-zh.png) |
+| ![引导流程](Docs/release/v0.2.0/onboarding-welcome.png) | ![AI Mentor 配置](Docs/release/v0.2.0/onboarding-ai-setup.png) |
 
-| 生活 | 知识 |
+| 收件箱 | 快速捕捉（AI 模块路由） |
 | --- | --- |
-| ![构筑人生生活模块](NexaLife/Docs/release/v0.1.1/lifestyle-ledger-zh.png) | ![构筑人生知识模块](NexaLife/Docs/release/v0.1.1/knowledge-empty-state-zh.png) |
+| ![收件箱](Docs/release/v0.2.0/inbox.png) | ![快速捕捉 AI](Docs/release/v0.2.0/quick-capture-ai.png) |
 
-| 觉知 | Profile |
+| 执行 — 看板 & 项目 | 知识 |
 | --- | --- |
-| ![构筑人生觉知模块](NexaLife/Docs/release/v0.1.1/vitals-empty-state-zh.png) | ![构筑人生 Profile 设置](NexaLife/Docs/release/v0.1.1/settings-profile-zh.png) |
+| ![执行](Docs/release/v0.2.0/execution-kanban.png) | ![知识](Docs/release/v0.2.0/knowledge.png) |
 
-### 关于窗口
+| 生活 — 账务 | 生活 — 目标 |
+| --- | --- |
+| ![生活账务](Docs/release/v0.2.0/lifestyle-ledger.png) | ![生活目标](Docs/release/v0.2.0/lifestyle-goals.png) |
 
-![构筑人生关于窗口](NexaLife/Docs/release/v0.1.1/about-zh.png)
+| 生活 — 人脉 | 觉知 |
+| --- | --- |
+| ![人脉](Docs/release/v0.2.0/lifestyle-connections.png) | ![觉知](Docs/release/v0.2.0/vitals.png) |
+
+| AI Mentor 对话 | 关于窗口 |
+| --- | --- |
+| ![AI Mentor 对话](Docs/release/v0.2.0/ai-mentor-chat.png) | ![关于](Docs/release/v0.2.0/about-zh.png) |
+
+---
 
 ## 为什么是构筑人生
 
-- 用一个统一工作台承接“想到、收进来、分流、执行、复盘、沉淀”这条链路。
-- 默认本地优先，不把你的日常数据先放进开发者托管云数据库。
+- **一个统一工作台**，承接"想到 → 收进来 → 分流 → 执行 → 复盘 → 沉淀"这条完整链路，不再依赖五个分散的工具。
+- **默认本地优先**，不把你的日常数据先放进开发者托管云数据库。
+- **AI 只是可选加速器**，没有配置 API Key 时自动回退到本地规则引擎，应用可完全离线使用。
 - 同时覆盖任务、项目、账务、目标、人脉、笔记、觉知，不再拆散成多个系统。
-- AI 只是可选加速器，没有配置 API Key 时仍可回退到本地规则。
 
-## 当前覆盖的核心模块
+---
 
-- `收件箱 Inbox`：先快速捕捉，再决定归类与处理。
-- `执行 Execution`：管理任务、项目、状态与推进节奏。
-- `生活 Lifestyle`：记录账务、目标和关系网络。
-- `知识 Knowledge`：沉淀笔记、主题与长期参考材料。
-- `觉知 Vitals`：记录原则、状态、反思与自我观察。
-- `仪表盘 Dashboard`：集中查看当月概览，并支持月度存档。
+## 核心模块
+
+| 模块 | 用途 |
+|------|------|
+| **收件箱 Inbox** | 用快速捕捉（`⌘⌥N`）先记下想法，AI 实时建议归属模块，之后再决定如何处理。 |
+| **执行 Execution** | 看板（待办 / 进行中 / 已完成）+ 项目面板（含时间跨度和状态标签），AI 推断任务分类、标签和项目。 |
+| **生活 Lifestyle** | 账务记录（AI 分类建议）、目标追踪、人脉管理（AI 互动策略）。 |
+| **知识 Knowledge** | 按主题组织笔记，AI 可为任意笔记生成摘要报告。 |
+| **觉知 Vitals** | 核心守则、情绪与反思日志，以及快速记录的"树洞"面板。 |
+| **仪表盘 Dashboard** | 月度概览、AI Mentor 引导面板、每日复盘编辑器、归档快照。 |
+
+---
+
+## AI 集成
+
+构筑人生将 AI 作为**情境助手**融入工作流，而非简单的聊天包装：
+
+- **智能路由** — 快速捕捉自动将新条目分流到最匹配的模块。
+- **任务元数据** — 从标题和备注推断分类、标签和所属项目。
+- **财务分类** — AI 读取交易标题与备注，建议最匹配的支出或收入分类。
+- **人脉洞察** — 为每个联系人生成重要性评分、互动策略和下一步行动建议。
+- **仪表盘引导** — 基于近期记录的模式识别与周期性建议。
+- **AI Mentor 对话** — 侧边栏浮球随时可用，从任意界面一键打开对话窗口。
+
+**支持的提供商：** DeepSeek（v4-flash、v4-pro、deepseek-chat、deepseek-reasoner）和通义千问。可在 设置 → AI 的模型选择器中添加自定义提供商。
+
+**没有 API Key？** 每个 AI 功能都有本地规则引擎兜底，应用可完全离线使用。
+
+---
 
 ## 数据与同步策略
 
-- 默认工作形态是 App 内部存储，优先保证本地稳定性。
+- 默认工作形态是 App 内部 SwiftData 存储，优先保证本地稳定性。
 - 标准迁移层是 JSON 快照导入导出，适合换版本或换设备。
 - `外部目录` 模式面向坚果云、NAS、iCloud Drive 等用户自管目录。
 - 后续 `iCloud` 路线是进入用户自己的 Apple 私有容器，而不是开发者托管数据库。
-- API Key 默认存储在 Keychain，且不会进入同步快照。
+- API Key 以本地文件形式存储，不进入同步快照。
 
-## 可选 AI 能力
+---
 
-- 收件内容可做模块归类建议。
-- 执行任务可推断分类、标签和可能的项目归属。
-- 人脉记录可生成关系洞察；如果未配置密钥，会回退到本地规则。
-- 当前设置页支持 `DeepSeek` 与 `Qwen` 两类提供方。
+## v0.2.0 新增内容
 
-## v0.1.1 更新重点
+- **AI 贯穿全模块** — 财务分类建议、任务元数据推断、人脉洞察、仪表盘引导、始终可见的 AI Mentor 对话。
+- **Quick Capture AI 路由修复** — 消费类内容正确建议 Lifestyle；本地关键词引擎新增 subscription、membership、fee、扣费、会员等 15 个词条。
+- **执行模块项目行重构** — 左侧彩色时间跨度 & 状态标签，右侧编辑/删除操作，新增"已暂停"项目状态。
+- **任务详情项目字段**升级为 Combobox（可输入新名称或从现有项目下拉选择）。
+- **Cherry Studio 风格模型选择器**，支持自定义提供商。
+- **Onboarding 新增 AI Mentor 配置步骤**。
+- App bundle 从 ~30 MB 缩减至 ~1.9 MB（Docs 移出 bundle）。
+- Xcode 构建 CodeSign 失败彻底修复。
 
-- 正式统一品牌名为 `构筑人生 / NexaLife`。
-- 将产品中的 `Account` 语义整体收敛为 `Profile`。
-- 新增邮箱验证码流程，用于创建或进入邮箱 Profile。
-- 在 Settings 中加入独立的 `Profile` 标签页。
-- 新增 About 窗口，补齐卷首语、产品策略和隐私说明。
-- 将同步模式明确为 `本机 / iCloud / 外部目录`。
-- 修复多处中英文切换与 Profile 相关界面的刷新问题。
+[完整发布说明 →](Docs/release/v0.2.0/v0.2.0-release-notes.md)
 
-## 当前版本边界
+---
 
-- NexaLife 目前仍是一个早期的 macOS SwiftUI 版本。
-- 归档的 `v0.1.1` 构建已经体现 Apple Profile 与 iCloud 路线，但还不是完整可用的正式同步能力。
-- 邮箱验证码流程已具备客户端形态，但真实邮件发送仍需要你自己的服务端接口。
-- 当前跨版本、跨设备迁移时，最稳妥的方式仍然是 JSON 快照导入导出。
+## 当前范围说明
 
-## 下载方式
+- 构筑人生目前是面向 macOS 26 Tahoe 的早期 SwiftUI 版本。
+- iCloud 同步与外部目录监听模式计划在 v0.4.0 中实现。
+- 邮箱验证 UI 已就位，真实发信能力需要用户自建服务端。
+- 目前换版本/换设备的可靠迁移路径是 JSON 快照导入导出。
 
-打开 [Releases](https://github.com/Epiphany-Leon/NexaLife/releases)，下载最新的 macOS 构建产物，例如 `NexaLife-macos-v0.1.1.zip`。
-
-如果只是体验 `v0.1.1`，优先使用打包好的 release 版本。
-
-## 从源码运行
-
-```bash
-git clone git@github.com:Epiphany-Leon/NexaLife.git
-cd NexaLife
-open NexaLife.xcodeproj
-```
-
-然后在 Xcode 中选择 `NexaLife` scheme，并使用兼容的 macOS / Xcode 工具链运行。
-
-## 仓库结构
-
-- `NexaLife/`：应用源码、资源、本地化和内部文档
-- `NexaLife.xcodeproj/`：Xcode 工程
-- `NexaLife/Docs/release/`：发布说明与产品截图
-- `NexaLife/Docs/同步方案/`：同步、账户与归档设计文档
-- `NexaLife/Docs/开发日志/`：开发日志
+---
 
 ## 许可证
 
