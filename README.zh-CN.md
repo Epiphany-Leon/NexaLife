@@ -28,6 +28,12 @@ brew install --cask nexalife
 
 > **需要 macOS 26 Tahoe 或更高版本。**
 
+### macOS 26 "应用无法打开" 解决方案
+
+NexaLife 采用个人分发签名（非 Apple Developer Program 公证），macOS 26 可能拦截首次启动。下面三种方式任选其一即可：
+
+![macOS 26 应用无法打开解决方案](Docs/release/v0.2.0/macos26-open-fix-zh.png)
+
 ---
 
 ## 产品截图

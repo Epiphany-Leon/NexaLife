@@ -28,6 +28,12 @@ Download `NexaLife-macos-v0.2.0.zip` from [Releases](https://github.com/Epiphany
 
 > **Requires macOS 26 Tahoe or later.**
 
+### "App cannot be opened" on macOS 26
+
+NexaLife is signed for personal distribution rather than through the Apple Developer Program, so macOS 26 may block the first launch. Pick whichever workaround fits you:
+
+![How to fix "App cannot be opened" on macOS 26](Docs/release/v0.2.0/macos26-open-fix-en.png)
+
 ---
 
 ## Product Tour
